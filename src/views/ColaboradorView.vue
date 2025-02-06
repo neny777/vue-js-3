@@ -57,63 +57,72 @@ onMounted(async () => {
 });
 // Função de envio do formulário
 const onSubmit = async (values, { resetForm }) => {
-  // Verifica se houve alterações nos valores do formulário
-  if (hasChanges(values)) {
-    const isValid = await validateUniqueFields(values);
-    if (!isValid) {
+  //formata a data para o padrão mysql
+  const formattedValues = {
+    ...values,
+    nascimento: formatToDatabaseDate(values.nascimento),
+  };
+  if (isEditMode.value) {
+    // Verifica se houve alterações nos valores do formulário
+    if (!hasChanges(values)) {
+      showToast("info", "Não houve alterações no colaborador.");
       return;
     }
-    const formattedValues = {
-      ...values,
-      nascimento: formatToDatabaseDate(values.nascimento),
-    };
-    if (isEditMode.value) {
-      // Abre o modal de confirmação no modo de edição
-      const modal = showModal(
-        "Editar Colaborador",
-        "Confirma a edição do colaborador?",
-        async () => {
-          try {
-            state.isProcessing = true;
-            await axiosInstance.put(`/colaboradores/${values.id}`, formattedValues);
-            showToast("sucesso", "Colaborador editado com sucesso!");
-            resetForm();
-            router.push("/colaboradores");
-          } catch (error) {
-            handleRequestError(error); // Chama o tratamento de erro
-          } finally {
-            state.isProcessing = false;
-            modal.hide(); // Fecha o modal
+    // Abre o modal de confirmação no modo de edição
+    const modal = showModal(
+      "Editar Colaborador",
+      "Confirma a edição do colaborador?",
+      async () => {
+        try {
+          state.isProcessing = true;
+          await axiosInstance.put(`/colaboradores/${values.id}`, formattedValues);
+          showToast("sucesso", "Colaborador editado com sucesso!");
+          resetForm();
+          router.push("/colaboradores");
+        } catch (error) {
+          if (error.response && error.response.data && error.response.data.errors) {
+            error.response.data.errors.forEach((err) => {
+              showToast("erro", err);
+            });
+          } else {
+            showToast("erro", "Erro inesperado ao validar.");
+            console.error(error);
           }
+        } finally {
+          state.isProcessing = false;
+          modal.hide(); // Fecha o modal
         }
-      );
-    } else {
-      // Criação de um novo colaborador sem modal
-      try {
-        state.isProcessing = true;
-        await axiosInstance.post("/colaboradores", formattedValues);
-        showToast("sucesso", "Colaborador cadastrado com sucesso!");
-        resetForm();
-        router.push("/colaboradores");
-      } catch (error) {
-        handleRequestError(error); // Chama o tratamento de erro
-      } finally {
-        state.isProcessing = false;
       }
+    );
+  } else {
+    // Validação no backend (somente no fluxo de criação)
+    try {
+      const validacao = await validarColaborador(formattedValues);
+    } catch (error) {
+      console.warn("Erro tratado:", error.message);
+      return;
     }
-  } else {
-    showToast("info", "Não houve alterações no colaborador.");
+    // Criação de um novo colaborador sem modal
+    try {
+      state.isProcessing = true;
+      await axiosInstance.post("/colaboradores", formattedValues);
+      showToast("sucesso", "Colaborador cadastrado com sucesso!");
+      resetForm();
+      router.push("/colaboradores");
+    } catch (error) {
+      console.warn("Erro tratado:", error.message);
+      return;
+    } finally {
+      state.isProcessing = false;
+    }
   }
 };
-// Função para tratamento centralizado de erros
-const handleRequestError = (error) => {
-  if (error.response && error.response.data) {
-    const { message, errorType } = error.response.data;
-  } else {
-    console.error(error);
-    showToast("erro", "Erro inesperado ao processar a solicitação.");
-  }
+
+const validarColaborador = async (values) => {
+    const response = await axiosInstance.post("/colaboradores/validar", values);
+    return { isValid: true }; // Retorna sucesso
 };
+
 const fetchCepAddress = async (event) => {
   const cep = event.target.value.replace(/\D/g, ""); // Remove caracteres não numéricos
   // Valida se o CEP é vazio ou nulo
@@ -153,42 +162,93 @@ const fetchCepAddress = async (event) => {
     state.isFetchingCepAddress = false;
   }
 };
-async function validateUniqueFields(values) {
-  const fieldsToValidate = ['nome', 'email', 'telefone', 'cpf', 'rg', 'ctps'];
-  let isValid = true;
-  for (const field of fieldsToValidate) {
-    const fieldValue = values[field];
-    if (fieldValue) {
-      try {
-        const params = { valor: fieldValue };
-        if (state.colaborador.id) {
-          params.id = state.colaborador.id; // Include the ID if it exists
-        }
-        // Make the API request
-        const { data } = await axiosInstance.get(`/colaboradores/validate/${field}`, { params });      
-        if (!data.unico) {
-          isValid = false; // Mark validation as failed
-          const message = `${field.toUpperCase()} já cadastrado.`; // Display error message
-          showToast("erro", message);
-        }
-      } catch (error) {
-        isValid = false; // Mark validation as failed
-        console.error('Erro ao validar campo:', field);
-        // Log detailed error information for debugging
-        if (error.response) {
-          console.error('Resposta da API:', error.response.data);
-          console.error('Status da API:', error.response.status);
-        } else {
-          console.error('Erro genérico:', error.message);
-        }
-        // Display error message to the user
-        const message = `Erro ao validar ${field.toUpperCase()}`;
-        showToast("erro", message);
-      }
-    }
+
+const nome = ref('');
+const pessoas = ref([]);
+let lastSearchTerm = ""; // Último termo buscado
+let lastSearchResultEmpty = false; // Indica se a última busca retornou vazio
+const findByName = async (nomeDigitado) => {
+  if (state.isFetchingFisica) {
+    pessoas.value = [];
+    return;
   }
-  return isValid;
-}
+  const nome = nomeDigitado.trim();
+  // Regra 1: Não realiza buscas com menos de 3 caracteres
+  if (nome.length <= 2) {
+    pessoas.value = [];
+    lastSearchTerm = "";
+    lastSearchResultEmpty = false; // Reseta a flag
+    return;
+  }
+  // Regra 2: Parar buscas após um resultado vazio (exceto no decremento)
+  if (lastSearchResultEmpty && nome.length >= lastSearchTerm.length) {
+    return; // Não realiza novas buscas se a última foi vazia e estamos incrementando
+  }
+  // Regra 3: Retomar busca em caso de decremento
+  if (nome.length < lastSearchTerm.length) {
+    lastSearchResultEmpty = false; // Permite novas buscas
+  }
+  try {
+    // Atualiza o termo antes de buscar
+    lastSearchTerm = nome;
+    state.isFetchingFisica = true;
+    const response = await axiosInstance.get('/pessoas/nome', { params: { nome } });
+    pessoas.value = response.data;
+    // Atualiza a flag para indicar se o resultado foi vazio
+    lastSearchResultEmpty = response.data.length === 0;
+  } catch (error) {
+    console.error('Erro ao buscar pessoas:', error);
+    pessoas.value = [];
+    lastSearchResultEmpty = false; // Evita travar buscas em caso de erro
+  } finally {
+    state.isFetchingFisica = false;
+  }
+};
+const fetchFisica = async (pessoaId) => {
+  try {
+    state.isFetchingFisica = true;
+    const response = await axiosInstance.get(`/parceiros/pessoa/fisica/${pessoaId}`);
+    const data = response.data;
+    if (data.erro) {
+      showToast("erro", "Erro ao carregar pessoa física.");
+      state.isFetchingCepAddress = false;
+      return;
+    }
+    // Preencher os campos do formulário com os dados retornados
+    const fisicaFieldsUpdate = {
+      id: data.id || "",
+      nome: data.nome || "",
+      email: data.email || "",
+      telefone: data.telefone || "",
+      cep: data.cep || "",
+      logradouro: data.logradouro || "",
+      numero: data.numero || "",
+      bairro: data.bairro || "",
+      municipio: data.municipio || "",
+      uf: data.uf || "",
+      cpf: data.cpf || "",
+      rg: data.rg || "",
+      nascimento: formatToBrDate(data.nascimento) || "",
+      sexo: data.sexo || "",
+    };
+    // Atualizar o estado do formulário
+    Object.entries(fisicaFieldsUpdate).forEach(([fieldId, value]) => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.value = value;
+        field.dispatchEvent(new Event("input", { bubbles: true })); // Simula entrada do usuário
+      }
+    });
+    // Limpar sugestões da lista
+    pessoas.value = [];
+    state.existFisica = true;
+  } catch (error) {
+    console.error("Erro ao preencher formulário:", error);
+    showToast("erro", "Erro ao carregar dados da pessoa.");
+  } finally {
+    state.isFetchingFisica = false;
+  }
+};
 </script>
 <template>
   <!--begin::App Main-->
@@ -248,12 +308,29 @@ async function validateUniqueFields(values) {
                           </div>
                         </div>
                       </div> <!--end::Col-->
-                      <!--begin::Col-->
-                      <div class="col-md-6 px-5">
+                       <!--begin::Col-->
+                       <div class="col-md-6 px-5">
                         <div class="row"> <label for="nome" class="col-form-label col-lg-4">Nome</label>
                           <div class="col-lg-8">
-                            <Field as="input" id="nome" name="nome" type="text" class="form-control" maxlength="60" />
+                            <Field as="input" id="nome" name="nome" type="text" class="form-control" maxlength="60"
+                              @input="(e) => findByName(e.target.value)" :readonly="state.existFisica" />
                             <ErrorMessage name="nome" class="text-danger" />
+                            <div v-if="state.isFetchingFisica" class="loader"></div>
+                            <div v-if="pessoas.length > 0" class="card mt-1">
+                              <div class="card-body">
+                                <ul class="list-group">
+                                  <button v-for="pessoa in pessoas" :key="pessoa.id" type="button"
+                                    class="list-group-item  list-group-item-action" @click="fetchFisica(pessoa.id)">
+                                    {{ pessoa.nome }}
+                                  </button>
+                                </ul>
+                                <div class="d-grid gap-2">
+                                  <button class="btn btn-primary mt-2" @click="pessoas = []">
+                                    <i class="bi bi-x-circle"></i>&nbsp;&nbsp;&nbsp;&nbsp;Fechar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div> <!--end::Col-->
@@ -427,6 +504,7 @@ async function validateUniqueFields(values) {
   animation: mulShdSpin 0.5s infinite ease;
   transform: translateZ(0);
 }
+
 .dots-loader::after {
   content: " ";
   display: inline-block;
@@ -436,29 +514,38 @@ async function validateUniqueFields(values) {
   background-color: #888;
   animation: dots 1.5s infinite;
 }
+
 @keyframes mulShdSpin {
+
   0%,
   100% {
     box-shadow: 0em -2.6em 0em 0em #000000, 1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2), 2.5em 0em 0 0em rgba(0, 0, 0, 0.2), 1.75em 1.75em 0 0em rgba(0, 0, 0, 0.2), 0em 2.5em 0 0em rgba(0, 0, 0, 0.2), -1.8em 1.8em 0 0em rgba(0, 0, 0, 0.2), -2.6em 0em 0 0em rgba(0, 0, 0, 0.5), -1.8em -1.8em 0 0em rgba(0, 0, 0, 0.7);
   }
+
   12.5% {
     box-shadow: 0em -2.6em 0em 0em rgba(0, 0, 0, 0.7), 1.8em -1.8em 0 0em #000000, 2.5em 0em 0 0em rgba(0, 0, 0, 0.2), 1.75em 1.75em 0 0em rgba(0, 0, 0, 0.2), 0em 2.5em 0 0em rgba(0, 0, 0, 0.2), -1.8em 1.8em 0 0em rgba(0, 0, 0, 0.2), -2.6em 0em 0 0em rgba(0, 0, 0, 0.2), -1.8em -1.8em 0 0em rgba(0, 0, 0, 0.5);
   }
+
   25% {
     box-shadow: 0em -2.6em 0em 0em rgba(0, 0, 0, 0.5), 1.8em -1.8em 0 0em rgba(0, 0, 0, 0.7), 2.5em 0em 0 0em #000000, 1.75em 1.75em 0 0em rgba(0, 0, 0, 0.2), 0em 2.5em 0 0em rgba(0, 0, 0, 0.2), -1.8em 1.8em 0 0em rgba(0, 0, 0, 0.2), -2.6em 0em 0 0em rgba(0, 0, 0, 0.2), -1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2);
   }
+
   37.5% {
     box-shadow: 0em -2.6em 0em 0em rgba(0, 0, 0, 0.2), 1.8em -1.8em 0 0em rgba(0, 0, 0, 0.5), 2.5em 0em 0 0em rgba(0, 0, 0, 0.7), 1.75em 1.75em 0 0em #000000, 0em 2.5em 0 0em rgba(0, 0, 0, 0.2), -1.8em 1.8em 0 0em rgba(0, 0, 0, 0.2), -2.6em 0em 0 0em rgba(0, 0, 0, 0.2), -1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2);
   }
+
   50% {
     box-shadow: 0em -2.6em 0em 0em rgba(0, 0, 0, 0.2), 1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2), 2.5em 0em 0 0em rgba(0, 0, 0, 0.5), 1.75em 1.75em 0 0em rgba(0, 0, 0, 0.7), 0em 2.5em 0 0em #000000, -1.8em 1.8em 0 0em rgba(0, 0, 0, 0.2), -2.6em 0em 0 0em rgba(0, 0, 0, 0.2), -1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2);
   }
+
   62.5% {
     box-shadow: 0em -2.6em 0em 0em rgba(0, 0, 0, 0.2), 1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2), 2.5em 0em 0 0em rgba(0, 0, 0, 0.2), 1.75em 1.75em 0 0em rgba(0, 0, 0, 0.5), 0em 2.5em 0 0em rgba(0, 0, 0, 0.7), -1.8em 1.8em 0 0em #000000, -2.6em 0em 0 0em rgba(0, 0, 0, 0.2), -1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2);
   }
+
   75% {
     box-shadow: 0em -2.6em 0em 0em rgba(0, 0, 0, 0.2), 1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2), 2.5em 0em 0 0em rgba(0, 0, 0, 0.2), 1.75em 1.75em 0 0em rgba(0, 0, 0, 0.2), 0em 2.5em 0 0em rgba(0, 0, 0, 0.5), -1.8em 1.8em 0 0em rgba(0, 0, 0, 0.7), -2.6em 0em 0 0em #000000, -1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2);
   }
+
   87.5% {
     box-shadow: 0em -2.6em 0em 0em rgba(0, 0, 0, 0.2), 1.8em -1.8em 0 0em rgba(0, 0, 0, 0.2), 2.5em 0em 0 0em rgba(0, 0, 0, 0.2), 1.75em 1.75em 0 0em rgba(0, 0, 0, 0.2), 0em 2.5em 0 0em rgba(0, 0, 0, 0.2), -1.8em 1.8em 0 0em rgba(0, 0, 0, 0.5), -2.6em 0em 0 0em rgba(0, 0, 0, 0.7), -1.8em -1.8em 0 0em #000000;
   }

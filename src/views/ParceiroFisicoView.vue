@@ -118,8 +118,8 @@ const onSubmit = async (values, { resetForm }) => {
   }
 };
 
-const validarParceiroFisico = async (parceiroData) => {
-    const response = await axiosInstance.post("/parceiros/fisico/validar", parceiroData);
+const validarParceiroFisico = async (values) => {
+    const response = await axiosInstance.post("/parceiros/fisico/validar", values);
     return { isValid: true }; // Retorna sucesso
 };
 

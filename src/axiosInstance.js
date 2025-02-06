@@ -2,8 +2,9 @@ import Axios from 'axios';
 import { useServerStatusStore } from '@/stores/serverStatusStore';
 import { showToast } from '@/composables/toastUtils';
 const axiosInstance = Axios.create({
+  //baseURL: 'http://45.189.66.132:8080/api',
   baseURL: 'http://192.168.3.18:8080/api',
-  timeout: 5000, // Define um timeout de 10 segundos
+  timeout: 3000, // Define um timeout de 10 segundos
 });
 // Lista de rotas públicas
 const publicPaths = [

@@ -51,7 +51,6 @@ const deleteparceiro = async (id) => {
         }
     });
 };
-
 onMounted(async () => {
     fetchParceiros();
 });
