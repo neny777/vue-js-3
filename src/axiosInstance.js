@@ -59,10 +59,19 @@ axiosInstance.interceptors.response.use(
     if (publicPaths.some((path) => error.config.url.includes(path))) {
       return Promise.reject(error);
     }
+    /*
+        if (status === 400) {
+          // Exibir erro apenas se houver uma mensagem clara do backend
+          const errorMessage = error.response?.data?.message || "Requisição inválida.";
+          showToast('erro', errorMessage);
+          return Promise.reject(new Error(errorMessage));
+        }
+    */
 
     if (status === 400) {
-      // Exibir erro apenas se houver uma mensagem clara do backend
-      const errorMessage = error.response?.data?.message || "Requisição inválida.";
+      // Se houver múltiplos erros, junta as mensagens em uma única string
+      const errors = error.response?.data?.errors;
+      const errorMessage = Array.isArray(errors) ? errors.join("\n") : "Requisição inválida.";
       showToast('erro', errorMessage);
       return Promise.reject(new Error(errorMessage));
     }

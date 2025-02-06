@@ -19,7 +19,8 @@ const menuConfig = [
                     { name: "Usuários", path: "/usuarios", permission: "ROLE_usuarios", icon: "bi bi-people" },
                 ],
             },
-            { name: "Level 1", path: "/level1", permission: "ROLE_level1", icon: "bi bi-circle" },
+            { name: "Materiais", path: "/materiais", permission: "ROLE_materiais", icon: "bi bi-columns-gap" },
+            { name: "Produtos", path: "/produtos", permission: "ROLE_produtos", icon: "bi bi-columns" },
         ],
     },    
 ];
@@ -75,16 +76,6 @@ onMounted(() => {
                     <li class="nav-header text-center">
                         <h5>MENU</h5>
                     </li>
-
-
-
-
-
-
-
-
-
-
                     <!-- Renderizar menus dinamicamente -->
                     <li v-for="menu in filteredMenu" :key="menu.name" class="nav-item">
                         <!-- Menu principal -->
@@ -92,7 +83,6 @@ onMounted(() => {
                             <i :class="menu.icon"></i>
                             <p>{{ menu.name }}</p>
                         </a>
-
                         <!-- Menu principal com submenus -->
                         <a v-else href="#" class="nav-link">
                             <i :class="menu.icon"></i>
@@ -101,7 +91,6 @@ onMounted(() => {
                                 <i class="nav-arrow bi bi-chevron-right"></i>
                             </p>
                         </a>
-
                         <!-- Submenus -->
                         <ul v-if="menu.children && menu.children.length > 0" class="nav nav-treeview ms-3">
                             <li v-for="submenu in menu.children" :key="submenu.name" class="nav-item">
@@ -110,7 +99,6 @@ onMounted(() => {
                                     <i :class="submenu.icon"></i>
                                     <p>{{ submenu.name }}</p>
                                 </RouterLink>
-
                                 <!-- Submenu com filhos -->
                                 <a v-else href="#" class="nav-link">
                                     <i :class="submenu.icon"></i>
@@ -131,16 +119,6 @@ onMounted(() => {
                             </li>
                         </ul>
                     </li>
-
-
-
-
-
-
-
-
-
-
                 </ul> <!--end::Sidebar Menu-->
             </nav>
         </div> <!--end::Sidebar Wrapper-->

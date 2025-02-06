@@ -159,8 +159,8 @@ const handleParceiroFisicoJuridico = (type) => {
                                                             <td class="text-center">
                                                                 <button class="btn btn-primary btn-sm mx-2"
                                                                     @click="$router.push(parceiro.tipo === 'FÍSICA'
-                                                                        ? { name: 'fisico', params: { fisicoId: parceiro.id } }
-                                                                        : { name: 'juridico', params: { juridicoId: parceiro.id } })">
+                                                                        ? { name: 'parceiro-fisico', params: { fisicoId: parceiro.id } }
+                                                                        : { name: 'parceiro-juridico', params: { juridicoId: parceiro.id } })">
                                                                     <i class="bi bi-pen"></i></button>
                                                                 <button class="btn btn-danger btn-sm mx-2"><i
                                                                         class="bi bi-trash"

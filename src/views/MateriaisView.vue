@@ -11,59 +11,54 @@ import { reactive, onMounted } from 'vue';
 import axiosInstance from '@/axiosInstance';
 import { showModal } from '@/composables/modalUtils';
 import { showToast } from '@/composables/toastUtils';
-import FornecedorFisicoJuridicoModal from "@/components/FornecedorFisicoJuridicoModal.vue";
-
 const router = useRouter();
 const state = reactive({
-    fornecedores: [],
+    materiais: [],
     isProcessing: false,
 });
-
-const fetchFornecedores = async () => {
+const fetchMateriais = async () => {
     try {
         state.isProcessing = true;
-        const response = await axiosInstance.get('/fornecedores');
-        state.fornecedores = response.data;
+        const response = await axiosInstance.get('/materiais');
+        state.materiais = response.data;
     } catch (error) {
-        showToast("erro", "Erro ao carregar fornecedores");
+        showToast("erro", "Erro ao carregar materiais");
     } finally {
         state.isProcessing = false;
     }
 };
 // Fetch options from the composable
 const { options } = customDataTables();
-// Delete a fornecedor
-const deletefornecedor = async (id) => {
-    const modal = showModal("Excluir fornecedor", 'Confirma a exclusão do fornecedor?', async () => {
+// Delete a material
+const deleteMaterial = async (id) => {
+    const modal = showModal("Excluir Material", 'Confirma a exclusão do material?', async () => {
         try {
             state.isProcessing = true;
-            await axiosInstance.delete(`/fornecedores/${id}`);
-            state.fornecedores = state.fornecedores.filter(fornecedor => fornecedor.id !== id);
+            await axiosInstance.delete(`/materiais/${id}`);
+            state.materiais = state.materiais.filter(material => material.id !== id);
             redrawTable('list');
             // Mostrar toast de sucesso
-            showToast("sucesso", "fornecedor excluído com sucesso.");
+            showToast("sucesso", "Material excluído com sucesso.");
         } catch (error) {
             // Mostrar toast de erro
-            showToast("erro", "Não foi possível excluir o fornecedor.");
+            showToast("erro", "Não foi possível excluir o material.");
         } finally {
             state.isProcessing = false;
             modal.hide(); // Fecha o modal após a confirmação
         }
     });
 };
-
 onMounted(async () => {
-    fetchFornecedores();
+    fetchMateriais();
 });
 
-const handleFornecedorFisicoJuridico = (type) => {
-    if (type === "fisico") {
-        window.location.href = "/fornecedores/fisico";
-    } else if (type === "juridico") {
-        window.location.href = "/fornecedores/juridico";
-    }
+const formatNumber = (value) => {
+  if (!value) return "0";
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 };
-
 </script>
 <template>
     <!--begin::App Main-->
@@ -78,10 +73,7 @@ const handleFornecedorFisicoJuridico = (type) => {
                         <ol class="breadcrumb float-sm-end">
                             <li class="breadcrumb-item">Cadastros</li>
                             <li class="breadcrumb-item active" aria-current="page">
-                                Pessoas
-                            </li>
-                            <li class="breadcrumb-item active" aria-current="page">
-                                Fornecedores
+                                Materiais
                             </li>
                         </ol>
                     </div> <!--end::Col-->
@@ -97,22 +89,20 @@ const handleFornecedorFisicoJuridico = (type) => {
                             <div class="card-header">
                                 <!--begin::Card Title-->
                                 <div class="card-title">
-                                    <h5>Fornecedores</h5>
+                                    <h5>Materiais</h5>
                                 </div>
                                 <!--end::Card Title-->
                                 <!--begin::Add button-->
-                                <button type="button" class="btn btn-primary button-medium float-end"
-                                    data-bs-toggle="modal" data-bs-target="#supplierTypeModal"><i
-                                        class="bi bi-plus"></i>&nbsp;&nbsp;&nbsp;Novo</button>
+                                <RouterLink to="/material">
+                                    <button type="button" class="btn btn-primary button-medium float-end"><i
+                                            class="bi bi-plus"></i>&nbsp;&nbsp;&nbsp;Novo</button>
+                                </RouterLink>
                                 <!--end::Add button-->
-                                <!-- Modal para selecionar a categoria de fornecedor -->
-                                <!-- Modal de seleção de tipo de fornecedor -->
-                                <FornecedorFisicoJuridicoModal @selectType="handleFornecedorFisicoJuridico" />
                             </div> <!--end::Card Header--> <!--begin::Card Body-->
                             <div class="card-body"> <!--begin::Row-->
                                 <div class="row"> <!--begin::Col-->
                                     <div class="col-md-12">
-                                        <!-- Table for fornecedores -->
+                                        <!-- Table for materiais -->
                                         <div class="table-responsive p-2">
                                             <!-- Show loading spinner while loading is true -->
                                             <div v-if="state.isProcessing" class="text-center">
@@ -134,7 +124,7 @@ const handleFornecedorFisicoJuridico = (type) => {
                                                     </tbody>
                                                 </DataTables>
                                             </div>
-                                            <!-- Shoe fornecedor listing when done loading -->
+                                            <!-- Shoe material listing when done loading -->
                                             <div v-else>
                                                 <DataTables id="list" :options="options"
                                                     class="display table table-bordered table-striped">
@@ -142,29 +132,29 @@ const handleFornecedorFisicoJuridico = (type) => {
                                                         <tr>
                                                             <th class="d-none">id</th>
                                                             <th>Nome</th>
-                                                            <th>Email</th>
-                                                            <th>Telefone</th>
-                                                            <th>Município</th>
+                                                            <th>Marca</th>
+                                                            <th>Unidade</th>
+                                                            <th>Preço</th>
+                                                            
                                                             <th class="text-center">Ações</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        <tr v-for="(fornecedor, index) in state.fornecedores"
-                                                            :key="fornecedor.id">
-                                                            <td class="d-none">{{ fornecedor.id }}</td>
-                                                            <td>{{ fornecedor.nome }}</td>
-                                                            <td>{{ fornecedor.email }}</td>
-                                                            <td>{{ fornecedor.telefone }}</td>
-                                                            <td>{{ fornecedor.municipio }}</td>
+                                                        <tr v-for="(material, index) in state.materiais"
+                                                            :key="material.id">
+                                                            <td class="d-none">{{ material.id }}</td>
+                                                            <td>{{ material.nome }}</td>
+                                                            <td>{{ material.marca }}</td>
+                                                            <td>{{ material.unidadeDescricao }}</td>
+                                                            <td>R$&nbsp;&nbsp;&nbsp;{{ formatNumber(material.preco) }}</td>
+                                                            <!--<td>{{ formatNumber(material.estoque) }}&nbsp;&nbsp;&nbsp;{{ material.unidadeDescricao }}</td>-->
                                                             <td class="text-center">
                                                                 <button class="btn btn-primary btn-sm mx-2"
-                                                                    @click="$router.push(fornecedor.tipo === 'FÍSICA'
-                                                                        ? { name: 'fornecedor-fisico', params: { fisicoId: fornecedor.id } }
-                                                                        : { name: 'fornecedor-juridico', params: { juridicoId: fornecedor.id } })">
-                                                                    <i class="bi bi-pen"></i></button>
+                                                                    @click="$router.push({ name: 'material', params: { materialId: material.id } })"><i
+                                                                        class="bi bi-pen"></i></button>
                                                                 <button class="btn btn-danger btn-sm mx-2"><i
                                                                         class="bi bi-trash"
-                                                                        @click="deletefornecedor(fornecedor.id)"></i></button>
+                                                                        @click="deleteMaterial(material.id)"></i></button>
                                                             </td>
                                                         </tr>
                                                     </tbody>

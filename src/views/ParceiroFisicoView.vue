@@ -28,7 +28,6 @@ const schema = yup.object({
   sexo: yup.string().required('Sexo é obrigatório'),
   nascimento: yup.string().nullable().optional().brDate('Data inválida').minAge('A idade mínima é 16 anos.'),
 });
-
 const state = reactive({
   fisico: {},
   isProcessing: false,
@@ -36,20 +35,15 @@ const state = reactive({
   isFetchingFisica: false,
   existFisica: false,
 });
-
 // Função para verificar alterações
 const hasChanges = (newValues) => {
   return JSON.stringify(newValues) !== JSON.stringify(state.fisico);
 };
-
 onMounted(async () => {
-  
-  
   state.isProcessing = true;
   if (isEditMode.value) {
     try {
       const { data } = await axiosInstance.get(`/parceiros/fisico/${route.params.fisicoId}`);
-      
       state.fisico = data;
       state.fisico = {
         ...state.fisico,
@@ -61,7 +55,6 @@ onMounted(async () => {
   }
   state.isProcessing = false;
 });
-
 // Função de envio do formulário
 const onSubmit = async (values, { resetForm }) => {
   //formata a data para o padrão mysql
@@ -69,8 +62,6 @@ const onSubmit = async (values, { resetForm }) => {
     ...values,
     nascimento: formatToDatabaseDate(values.nascimento),
   };
-  // Adiciona a validação no backend
-  //try {
   if (isEditMode.value) {
     // Verifica se houve alterações nos valores do formulário
     if (!hasChanges(values)) {
@@ -107,16 +98,9 @@ const onSubmit = async (values, { resetForm }) => {
      // Validação no backend (somente no fluxo de criação)
      try {
       const validacao = await validarParceiroFisico(formattedValues);
-      if (!validacao.isValid) {
-        validacao.errors.forEach((err) => {
-          showToast("erro", err);
-        });
-        return; // Interrompe o fluxo em caso de erro de validação
-      }
     } catch (error) {
-      showToast("erro", "Erro ao validar os dados.");
-      console.error(error);
-      return; // Interrompe o fluxo em caso de erro inesperado na validação
+      console.warn("Erro tratado:", error.message);
+      return;
     }
     // Criação de um novo parceiro
     try {      
@@ -126,13 +110,8 @@ const onSubmit = async (values, { resetForm }) => {
       resetForm();
       router.push("/parceiros");
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.errors) {
-        error.response.data.errors.forEach((err) => {
-          showToast("erro", err);
-        });
-      } else {
-        showToast("erro", "Erro inesperado ao validar.");
-      }
+      console.warn("Erro tratado:", error.message);
+      return;
     } finally {
       state.isProcessing = false;
     }
@@ -140,17 +119,8 @@ const onSubmit = async (values, { resetForm }) => {
 };
 
 const validarParceiroFisico = async (parceiroData) => {
-  try {
     const response = await axiosInstance.post("/parceiros/fisico/validar", parceiroData);
-    
     return { isValid: true }; // Retorna sucesso
-  } catch (error) {
-    if (error.response && error.response.data && error.response.data.errors) {
-      return { isValid: false, errors: error.response.data.errors }; // Retorna erros do backend
-    }
-    console.error("Erro inesperado:", error);
-    return { isValid: false, errors: ["Erro inesperado ao validar."] };
-  }
 };
 
 const fetchCepAddress = async (event) => {
@@ -197,7 +167,6 @@ const nome = ref('');
 const pessoas = ref([]);
 let lastSearchTerm = ""; // Último termo buscado
 let lastSearchResultEmpty = false; // Indica se a última busca retornou vazio
-
 const findByName = async (nomeDigitado) => {
   if (state.isFetchingFisica) {
     pessoas.value = [];
@@ -235,7 +204,6 @@ const findByName = async (nomeDigitado) => {
     state.isFetchingFisica = false;
   }
 };
-
 const fetchFisica = async (pessoaId) => {
   try {
     state.isFetchingFisica = true;
@@ -274,6 +242,9 @@ const fetchFisica = async (pessoaId) => {
     // Limpar sugestões da lista
     pessoas.value = [];
     state.existFisica = true;
+  } catch (error) {
+    console.error("Erro ao preencher formulário:", error);
+    showToast("erro", "Erro ao carregar dados da pessoa.");
   } finally {
     state.isFetchingFisica = false;
   }

@@ -11,7 +11,6 @@ import axiosInstance from '@/axiosInstance';
 // State
 const route = useRoute();
 const router = useRouter();
-
 const isEditMode = ref(!!route.params.juridicoId);
 // Validation schema
 const schema = yup.object({
@@ -36,26 +35,22 @@ const state = reactive({
   isFetchingJuridica: false,
   existJuridica: false,
 });
-
 // Função para verificar alterações
 const hasChanges = (newValues) => {
   return JSON.stringify(newValues) !== JSON.stringify(state.juridico);
 };
-
-onMounted(async () => {  
+onMounted(async () => {
   state.isProcessing = true;
   if (isEditMode.value) {
     try {
       const { data } = await axiosInstance.get(`/clientes/juridico/${route.params.juridicoId}`);
-      
-      state.juridico = data;      
+      state.juridico = data;
     } catch (error) {
       showToast("erro", "Erro ao carregar cliente: ", error);
     }
   }
   state.isProcessing = false;
 });
-
 // Função de envio do formulário
 const onSubmit = async (values, { resetForm }) => {
   // Adiciona a validação no backend
@@ -91,53 +86,33 @@ const onSubmit = async (values, { resetForm }) => {
         }
       }
     );
-  } else {    
-     // Validação no backend (somente no fluxo de criação)
-     try {
-      const validacao = await validarClienteFisico(values);
-      if (!validacao.isValid) {
-        validacao.errors.forEach((err) => {
-          showToast("erro", err);
-        });
-        return; // Interrompe o fluxo em caso de erro de validação
-      }
+  } else {
+    // Validação no backend (somente no fluxo de criação)
+    try {
+      const validacao = await validarClienteJuridico(values);
     } catch (error) {
-      showToast("erro", "Erro ao validar os dados.");
-      console.error(error);
-      return; // Interrompe o fluxo em caso de erro inesperado na validação
+      console.warn("Erro tratado:", error.message);
+      return;
     }
     // Criação de um novo cliente
-    try {      
+    try {
       state.isProcessing = true;
       await axiosInstance.post("/clientes/juridico", values);
       showToast("sucesso", "Cliente cadastrado com sucesso!");
       resetForm();
       router.push("/clientes");
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.errors) {
-        error.response.data.errors.forEach((err) => {
-          showToast("erro", err);
-        });
-      } else {
-        showToast("erro", "Erro inesperado ao validar.");
-      }
+      console.warn("Erro tratado:", error.message);
+      return;
     } finally {
       state.isProcessing = false;
     }
   }
 };
 
-const validarClienteFisico = async (clienteData) => {  
-  try {
-    const response = await axiosInstance.post("/clientes/juridico/validar", clienteData);       
-    return { isValid: true }; // Retorna sucesso
-  } catch (error) {
-    if (error.response && error.response.data && error.response.data.errors) {
-      return { isValid: false, errors: error.response.data.errors }; // Retorna erros do backend
-    }
-    console.error("Erro inesperado:", error);
-    return { isValid: false, errors: ["Erro inesperado ao validar."] };
-  }
+const validarClienteJuridico = async (values) => {
+  const response = await axiosInstance.post("/clientes/juridico/validar", values);
+  return { isValid: true }; // Retorna sucesso 
 };
 
 const fetchCepAddress = async (event) => {
@@ -221,7 +196,6 @@ const findByName = async (nomeDigitado) => {
     state.isFetchingJuridica = false;
   }
 };
-
 const fetchJuridica = async (pessoaId) => {
   try {
     state.isFetchingJuridica = true;

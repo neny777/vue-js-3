@@ -15,6 +15,8 @@ import ColaboradoresView from '@/views/ColaboradoresView.vue';
 import ColaboradorView from '@/views/ColaboradorView.vue';
 import UsuariosView from '@/views/UsuariosView.vue';
 import UsuarioView from '@/views/UsuarioView.vue';
+import MateriaisView from '@/views/MateriaisView.vue';
+import MaterialView from '@/views/MaterialView.vue';
 import ServerErrorView from '@/views/ServerErrorView.vue';
 import PasswordRecoverEmailView from '@/views/PasswordRecoverEmailView.vue';
 import PasswordRecoverCodeView from '@/views/PasswordRecoverCodeView.vue';
@@ -71,7 +73,7 @@ const router = createRouter({
     },
     {
       path: '/fornecedores/juridico/:juridicoId?',
-      name: 'forncedor-juridico',
+      name: 'fornecedor-juridico',
       component: FornecedorJuridicoView,
       props: true,
       meta: { layout: 'DefaultLayout' }
@@ -119,6 +121,19 @@ const router = createRouter({
       path: '/usuario/:usuarioId?',
       name: 'usuario',
       component: UsuarioView,
+      props: true,
+      meta: { layout: 'DefaultLayout' }
+    },
+    {
+      path: '/materiais',
+      name: 'materiais',
+      component: MateriaisView,
+      meta: { layout: 'DefaultLayout' }
+    },
+    {
+      path: '/material/:materialId?',
+      name: 'material',
+      component: MaterialView,
       props: true,
       meta: { layout: 'DefaultLayout' }
     },

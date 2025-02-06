@@ -12,6 +12,7 @@ import './assets/css/custom.css';
 import './assets/js/adminlte.js';
 import router from './router';
 import { createPinia } from 'pinia';
+import { Money3Component } from 'v-money3';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
+app.component('Money3', Money3Component);
 app.use(pinia);
 app.use(VueTheMask);
 app.use(router);

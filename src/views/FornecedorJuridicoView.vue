@@ -11,7 +11,6 @@ import axiosInstance from '@/axiosInstance';
 // State
 const route = useRoute();
 const router = useRouter();
-
 const isEditMode = ref(!!route.params.juridicoId);
 // Validation schema
 const schema = yup.object({
@@ -27,7 +26,6 @@ const schema = yup.object({
   cnpj: yup.string().nullable().optional().cnpj("CNPJ inválido"),
   ie: yup.string().nullable().optional().max(14, 'Máximo de 14 caracteres'),
 });
-
 const state = reactive({
   juridico: {},
   isProcessing: false,
@@ -35,18 +33,15 @@ const state = reactive({
   isFetchingJuridica: false,
   existJuridica: false,
 });
-
 // Função para verificar alterações
 const hasChanges = (newValues) => {
   return JSON.stringify(newValues) !== JSON.stringify(state.juridico);
 };
-
 onMounted(async () => {
   state.isProcessing = true;
   if (isEditMode.value) {
     try {
       const { data } = await axiosInstance.get(`/fornecedores/juridico/${route.params.juridicoId}`);
-
       state.juridico = data;
     } catch (error) {
       showToast("erro", "Erro ao carregar fornecedor: ", error);
@@ -54,7 +49,6 @@ onMounted(async () => {
   }
   state.isProcessing = false;
 });
-
 // Função de envio do formulário
 const onSubmit = async (values, { resetForm }) => {
   // Adiciona a validação no backend
@@ -93,17 +87,10 @@ const onSubmit = async (values, { resetForm }) => {
   } else {
     // Validação no backend (somente no fluxo de criação)
     try {
-      const validacao = await validarFornecedorFisico(values);
-      if (!validacao.isValid) {
-        validacao.errors.forEach((err) => {
-          showToast("erro", err);
-        });
-        return; // Interrompe o fluxo em caso de erro de validação
-      }
+      const validacao = await validarFornecedorJuridico(values);
     } catch (error) {
-      showToast("erro", "Erro ao validar os dados.");
-      console.error(error);
-      return; // Interrompe o fluxo em caso de erro inesperado na validação
+      console.warn("Erro tratado:", error.message);
+      return;
     }
     // Criação de um novo fornecedor
     try {
@@ -113,30 +100,17 @@ const onSubmit = async (values, { resetForm }) => {
       resetForm();
       router.push("/fornecedores");
     } catch (error) {
-      if (error.response && error.response.data && error.response.data.errors) {
-        error.response.data.errors.forEach((err) => {
-          showToast("erro", err);
-        });
-      } else {
-        showToast("erro", "Erro inesperado ao validar.");
-      }
+      console.warn("Erro tratado:", error.message);
+      return;
     } finally {
       state.isProcessing = false;
     }
   }
 };
 
-const validarFornecedorFisico = async (fornecedorData) => {
-  try {
-    const response = await axiosInstance.post("/fornecedores/juridico/validar", fornecedorData);
-    return { isValid: true }; // Retorna sucesso
-  } catch (error) {
-    if (error.response && error.response.data && error.response.data.errors) {
-      return { isValid: false, errors: error.response.data.errors }; // Retorna erros do backend
-    }
-    console.error("Erro inesperado:", error);
-    return { isValid: false, errors: ["Erro inesperado ao validar."] };
-  }
+const validarFornecedorJuridico = async (values) => {
+  const response = await axiosInstance.post("/fornecedores/juridico/validar", values);
+  return { isValid: true }; // Retorna sucesso 
 };
 
 const fetchCepAddress = async (event) => {
@@ -220,7 +194,6 @@ const findByName = async (nomeDigitado) => {
     state.isFetchingJuridica = false;
   }
 };
-
 const fetchJuridica = async (pessoaId) => {
   try {
     state.isFetchingJuridica = true;
@@ -257,6 +230,9 @@ const fetchJuridica = async (pessoaId) => {
     // Limpar sugestões da lista
     pessoas.value = [];
     state.existJuridica = true;
+  } catch (error) {
+    console.error("Erro ao preencher formulário:", error);
+    showToast("erro", "Erro ao carregar dados da pessoa.");
   } finally {
     state.isFetchingJuridica = false;
   }

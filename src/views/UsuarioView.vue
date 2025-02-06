@@ -207,8 +207,8 @@ const onSubmit = async (values, { resetForm }) => {
                           </div>
                         </div>
                       </div><!--end::Col-->
-                       <!--begin::Col-->
-                       <div class="col-lg-6 px-3">
+                      <!--begin::Col-->
+                      <div class="col-lg-6 px-3">
                         <div class="card">
                           <div class="card-body">
                             <Field id="ROLE_parceiros" name="permissoes" type="checkbox" value="ROLE_parceiros"
@@ -225,6 +225,30 @@ const onSubmit = async (values, { resetForm }) => {
                               class="form-check-input mx-2" />
                             <label class="form-check-label mx-2" for="invalidCheck">
                               Usuários
+                            </label>
+                          </div>
+                        </div>
+                      </div><!--end::Col-->
+                      <!--begin::Col-->
+                      <div class="col-lg-6 px-3">
+                        <div class="card">
+                          <div class="card-body">
+                            <Field id="ROLE_materiais" name="permissoes" type="checkbox" value="ROLE_materiais"
+                              class="form-check-input mx-2" />
+                            <label class="form-check-label mx-2" for="invalidCheck">
+                              Materiais
+                            </label>
+                          </div>
+                        </div>
+                      </div><!--end::Col-->
+                      <!--begin::Col-->
+                      <div class="col-lg-6 px-3">
+                        <div class="card">
+                          <div class="card-body">
+                            <Field id="ROLE_produtos" name="permissoes" type="checkbox" value="ROLE_produtos"
+                              class="form-check-input mx-2" />
+                            <label class="form-check-label mx-2" for="invalidCheck">
+                              Produtos
                             </label>
                           </div>
                         </div>

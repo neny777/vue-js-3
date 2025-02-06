@@ -104,7 +104,7 @@ async function logout() {
                     </li>
                 </ul>
 
-                <li class="nav-item"> <a class="nav-link" href="#" @click="logout"><i class="bi bi-box-arrow-left"></i></a>
+                <li class="nav-item"> <a class="nav-link" href="#" @click="logout"><i class="bi bi-door-closed"></i></a>
                 </li>
                 <!--end::Color Mode Menu Dropdown--><!--begin::User Menu Dropdown-->
                 <li class="nav-item dropdown user-menu"> <a href="#" class="nav-link dropdown-toggle"

@@ -144,7 +144,7 @@ const handleClienteFisicoJuridico = (type) => {
                                                             <th>Nome</th>
                                                             <th>Email</th>
                                                             <th>Telefone</th>
-                                                            <th>Município</th>
+                                                            <th>Município</th>                                                           
                                                             <th class="text-center">Ações</th>
                                                         </tr>
                                                     </thead>
@@ -155,12 +155,12 @@ const handleClienteFisicoJuridico = (type) => {
                                                             <td>{{ cliente.nome }}</td>
                                                             <td>{{ cliente.email }}</td>
                                                             <td>{{ cliente.telefone }}</td>
-                                                            <td>{{ cliente.municipio }}</td>
+                                                            <td>{{ cliente.municipio }}</td>                                                            
                                                             <td class="text-center">
                                                                 <button class="btn btn-primary btn-sm mx-2"
                                                                     @click="$router.push(cliente.tipo === 'FÍSICA'
-                                                                        ? { name: 'fisico', params: { fisicoId: cliente.id } }
-                                                                        : { name: 'juridico', params: { juridicoId: cliente.id } })">
+                                                                        ? { name: 'cliente-fisico', params: { fisicoId: cliente.id } }
+                                                                        : { name: 'cliente-juridico', params: { juridicoId: cliente.id } })">
                                                                     <i class="bi bi-pen"></i></button>
                                                                 <button class="btn btn-danger btn-sm mx-2"><i
                                                                         class="bi bi-trash"
